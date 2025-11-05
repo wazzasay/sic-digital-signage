@@ -317,9 +317,19 @@ class SignagePlayer(QMainWindow):
         self.image_label.show()
 
         pixmap = QPixmap(content['local_path'])
+
+        # Determine aspect ratio mode based on display_mode setting
+        display_mode = content.get('display_mode', 'fit')
+        if display_mode == 'fill':
+            # Scale to fill: crop content to fill screen (KeepAspectRatioByExpanding)
+            aspect_mode = Qt.KeepAspectRatioByExpanding
+        else:
+            # Scale to fit: show black bars, no cropping (KeepAspectRatio)
+            aspect_mode = Qt.KeepAspectRatio
+
         scaled_pixmap = pixmap.scaled(
             self.size(),
-            Qt.KeepAspectRatio,
+            aspect_mode,
             Qt.SmoothTransformation
         )
         self.image_label.setPixmap(scaled_pixmap)
@@ -333,6 +343,11 @@ class SignagePlayer(QMainWindow):
         self.image_label.hide()
         self.video_widget.show()
         self.video_widget.setGeometry(self.rect())
+
+        # Note: QVideoWidget always uses KeepAspectRatio behavior (letterbox/pillarbox)
+        # The display_mode setting (fit/fill) only affects images currently
+        # Videos will always scale to fit with black bars to preserve aspect ratio
+        self.video_widget.setAspectRatioMode(Qt.KeepAspectRatio)
 
         media = QMediaContent(QUrl.fromLocalFile(content['local_path']))
         self.media_player.setMedia(media)

@@ -71,11 +71,14 @@ def edit_content(content_id):
     data = request.json
     name = data.get('name')
     duration = data.get('duration')
+    display_mode = data.get('display_mode')
 
     if name:
         content.name = name
     if duration:
         content.duration = int(duration)
+    if display_mode and display_mode in ['fit', 'fill']:
+        content.display_mode = display_mode
 
     db.session.commit()
     return jsonify({'success': True})

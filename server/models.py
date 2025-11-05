@@ -54,6 +54,7 @@ class Content(db.Model):
     duration = db.Column(db.Integer, default=10)  # Display duration in seconds
     file_size = db.Column(db.Integer)  # Size in bytes
     mime_type = db.Column(db.String(100))
+    display_mode = db.Column(db.String(20), default='fit')  # 'fit' (letterbox) or 'fill' (crop)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -65,6 +66,7 @@ class Content(db.Model):
             'duration': self.duration,
             'file_size': self.file_size,
             'mime_type': self.mime_type,
+            'display_mode': self.display_mode,
             'created_at': self.created_at.isoformat()
         }
 

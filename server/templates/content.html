@@ -61,7 +61,7 @@
                     <td>{{ content.duration }}s</td>
                     <td>{{ content.created_at.strftime('%Y-%m-%d') }}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="editContent({{ content.id }}, '{{ content.name }}', {{ content.duration }})" style="margin-right: 0.5rem;">Edit</button>
+                        <button class="btn btn-sm btn-primary" onclick="editContent({{ content.id }}, '{{ content.name }}', {{ content.duration }}, '{{ content.display_mode or 'fit' }}')" style="margin-right: 0.5rem;">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteContent({{ content.id }})">Delete</button>
                     </td>
                 </tr>
@@ -85,6 +85,17 @@
         <div class="form-group">
             <label for="editContentDuration">Default Duration (seconds)</label>
             <input type="number" id="editContentDuration" min="1" required>
+        </div>
+        <div class="form-group">
+            <label for="editContentDisplayMode">Display Mode</label>
+            <select id="editContentDisplayMode" required>
+                <option value="fit">Scale to Fit (preserve aspect ratio, show black bars)</option>
+                <option value="fill">Scale to Fill (preserve aspect ratio, crop to fill screen)</option>
+            </select>
+            <div style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">
+                <strong>Fit:</strong> Content is scaled to fit within the screen without cropping. Black bars may appear.<br>
+                <strong>Fill:</strong> Content is scaled to fill the entire screen. Edges may be cropped.
+            </div>
         </div>
         <input type="hidden" id="editContentId">
         <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
@@ -257,10 +268,11 @@
         }
     }
 
-    function editContent(contentId, contentName, contentDuration) {
+    function editContent(contentId, contentName, contentDuration, displayMode) {
         document.getElementById('editContentId').value = contentId;
         document.getElementById('editContentName').value = contentName;
         document.getElementById('editContentDuration').value = contentDuration;
+        document.getElementById('editContentDisplayMode').value = displayMode || 'fit';
         document.getElementById('editContentModal').style.display = 'flex';
     }
 
@@ -272,6 +284,7 @@
         const contentId = document.getElementById('editContentId').value;
         const name = document.getElementById('editContentName').value.trim();
         const duration = document.getElementById('editContentDuration').value;
+        const displayMode = document.getElementById('editContentDisplayMode').value;
 
         if (!name) {
             alert('Please enter a name');
@@ -282,7 +295,7 @@
             const response = await fetch(`/admin/content/${contentId}/edit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, duration })
+                body: JSON.stringify({ name, duration, display_mode: displayMode })
             });
 
             if (response.ok) {
