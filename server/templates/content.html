@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Content - Digital Signage Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Upload Content</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="name">Content Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="duration">Duration (seconds)</label>
+            <input type="number" id="duration" name="duration" value="10" min="1" required>
+        </div>
+
+        <div class="form-group">
+            <label for="file">File (Images: PNG, JPG, GIF | Videos: MP4, AVI, MOV, WebM, MKV)</label>
+            <input type="file" id="file" name="file" accept="image/*,video/*" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+
+    <div id="uploadStatus" style="margin-top: 1rem;"></div>
+</div>
+
+<div class="card">
+    <h2>Content Library</h2>
+    {% if content_list %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Size</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for content in content_list %}
+            <tr id="content-{{ content.id }}">
+                <td>{{ content.name }}</td>
+                <td>{{ content.content_type|capitalize }}</td>
+                <td>{{ content.duration }}s</td>
+                <td>{{ (content.file_size / 1024 / 1024)|round(2) }} MB</td>
+                <td>{{ content.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteContent({{ content.id }})">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 2rem;">No content uploaded yet</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const statusDiv = document.getElementById('uploadStatus');
+
+        statusDiv.innerHTML = '<div class="alert alert-info">Uploading...</div>';
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                statusDiv.innerHTML = '<div class="alert alert-success">Upload successful!</div>';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                statusDiv.innerHTML = `<div class="alert alert-error">${data.error}</div>`;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = '<div class="alert alert-error">Upload failed</div>';
+        }
+    });
+
+    async function deleteContent(contentId) {
+        if (!confirm('Are you sure you want to delete this content?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/content/${contentId}/delete`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                document.getElementById(`content-${contentId}`).remove();
+            } else {
+                alert('Failed to delete content');
+            }
+        } catch (error) {
+            alert('Failed to delete content');
+        }
+    }
+</script>
+{% endblock %}

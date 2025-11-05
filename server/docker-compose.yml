@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: signage
+      POSTGRES_PASSWORD: signage
+      POSTGRES_DB: digital_signage
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  server:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://signage:signage@db/digital_signage
+      FLASK_ENV: development
+    volumes:
+      - ./:/app
+      - ./static/uploads:/app/static/uploads
+    depends_on:
+      - db
+    command: python app.py
+
+volumes:
+  postgres_data:

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Digital Signage Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Dashboard</h2>
+    <p>Welcome to the Digital Signage Management System</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+    <div class="card" style="text-align: center;">
+        <h3 style="color: #3498db; font-size: 3rem; margin-bottom: 0.5rem;">{{ screens|length }}</h3>
+        <p style="font-size: 1.25rem; color: #666;">Registered Screens</p>
+        <p style="margin-top: 1rem;">
+            <span class="status-online">{{ screens|selectattr('status', 'equalto', 'online')|list|length }} Online</span>
+            <span class="status-offline" style="margin-left: 0.5rem;">{{ screens|selectattr('status', 'equalto', 'offline')|list|length }} Offline</span>
+        </p>
+    </div>
+
+    <div class="card" style="text-align: center;">
+        <h3 style="color: #2ecc71; font-size: 3rem; margin-bottom: 0.5rem;">{{ content_count }}</h3>
+        <p style="font-size: 1.25rem; color: #666;">Content Items</p>
+    </div>
+
+    <div class="card" style="text-align: center;">
+        <h3 style="color: #e74c3c; font-size: 3rem; margin-bottom: 0.5rem;">{{ playlist_count }}</h3>
+        <p style="font-size: 1.25rem; color: #666;">Playlists</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Recent Screens</h2>
+    {% if screens %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for screen in screens[:5] %}
+            <tr>
+                <td>{{ screen.name }}</td>
+                <td>{{ screen.location or '-' }}</td>
+                <td>
+                    <span class="status-badge status-{{ screen.status }}">
+                        {{ screen.status|capitalize }}
+                    </span>
+                </td>
+                <td>{{ screen.last_seen.strftime('%Y-%m-%d %H:%M:%S') if screen.last_seen else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 2rem;">No screens registered yet</p>
+    {% endif %}
+</div>
+{% endblock %}

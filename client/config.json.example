@@ -1,0 +1,8 @@
+{
+  "server_url": "http://192.168.1.100:5000",
+  "name": "Display 1",
+  "location": "Main Lobby",
+  "poll_interval": 30,
+  "heartbeat_interval": 60,
+  "cache_dir": "/home/signage/.signage_cache"
+}

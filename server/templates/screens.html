@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Screens - Digital Signage Manager{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Registered Screens</h2>
+    {% if screens %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Identifier</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+                <th>Current Playlist</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for screen in screens %}
+            <tr id="screen-{{ screen.id }}">
+                <td>{{ screen.name }}</td>
+                <td><code>{{ screen.identifier[:16] }}...</code></td>
+                <td>{{ screen.location or '-' }}</td>
+                <td>
+                    <span class="status-badge status-{{ screen.status }}">
+                        {{ screen.status|capitalize }}
+                    </span>
+                </td>
+                <td>{{ screen.last_seen.strftime('%Y-%m-%d %H:%M:%S') if screen.last_seen else '-' }}</td>
+                <td>
+                    <select id="playlist-{{ screen.id }}" onchange="assignPlaylist({{ screen.id }})">
+                        <option value="">None</option>
+                        {% for playlist in playlists %}
+                        <option value="{{ playlist.id }}" {% if screen.current_playlist_id == playlist.id %}selected{% endif %}>
+                            {{ playlist.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-primary" onclick="assignPlaylist({{ screen.id }})">Assign</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 2rem;">
+        No screens registered yet. Start a client on an Ubuntu machine to register it.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function assignPlaylist(screenId) {
+        const select = document.getElementById(`playlist-${screenId}`);
+        const playlistId = select.value || null;
+
+        try {
+            const response = await fetch(`/admin/screen/${screenId}/assign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ playlist_id: playlistId })
+            });
+
+            if (response.ok) {
+                alert('Playlist assigned successfully');
+            } else {
+                alert('Failed to assign playlist');
+            }
+        } catch (error) {
+            alert('Failed to assign playlist');
+        }
+    }
+</script>
+{% endblock %}
