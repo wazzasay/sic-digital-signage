@@ -117,6 +117,30 @@ def download_content(content_id):
 
     return send_file(file_path, as_attachment=True)
 
+@bp.route('/content/<int:content_id>/thumbnail', methods=['GET'])
+def get_content_thumbnail(content_id):
+    """Get content thumbnail/preview"""
+    content = Content.query.get(content_id)
+
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+
+    if content.content_type == 'webpage':
+        return jsonify({'error': 'Webpages have no thumbnail'}), 400
+
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], content.file_path)
+
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    # For images, serve directly (browser will resize via CSS)
+    # For videos, we'd need thumbnail generation (future enhancement)
+    if content.content_type == 'image':
+        return send_file(file_path, mimetype=content.mime_type)
+    else:
+        # For videos, return placeholder for now
+        return jsonify({'error': 'Video thumbnails not yet supported'}), 400
+
 @bp.route('/upload', methods=['POST'])
 def upload_content():
     """Upload content file"""

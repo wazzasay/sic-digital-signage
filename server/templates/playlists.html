@@ -4,61 +4,78 @@
 
 {% block content %}
 <div class="card">
-    <h2>Playlists</h2>
-
-    <!-- Playlist Selection/Creation -->
-    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-        <select id="playlistSelect" style="flex: 1; padding: 0.5rem; font-size: 1rem;">
-            <option value="">Select a playlist...</option>
-            {% for playlist in playlists %}
-            <option value="{{ playlist.id }}">{{ playlist.name }}</option>
-            {% endfor %}
-        </select>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Playlists</h2>
         <button class="btn btn-primary" onclick="showCreatePlaylistModal()">+ New Playlist</button>
-        <button class="btn btn-danger" id="deletePlaylistBtn" onclick="deleteCurrentPlaylist()" style="display: none;">Delete Playlist</button>
     </div>
 
-    <!-- Playlist Name Display -->
-    <div id="playlistHeader" style="display: none;">
-        <h3 id="playlistName" style="margin-bottom: 0.5rem;"></h3>
-        <p id="playlistDescription" style="color: #666; margin-bottom: 1rem;"></p>
+    <!-- Playlist Cards -->
+    <div class="playlist-cards">
+        {% for playlist in playlists %}
+        <div class="playlist-card" data-playlist-id="{{ playlist.id }}" onclick="selectPlaylist({{ playlist.id }})">
+            <button class="playlist-card-delete" onclick="event.stopPropagation(); deletePlaylist({{ playlist.id }}, '{{ playlist.name }}')">Delete</button>
+            <div class="playlist-card-title">{{ playlist.name }}</div>
+            <div class="playlist-card-description">{{ playlist.description or 'No description' }}</div>
+            <div class="playlist-card-meta">
+                <div class="playlist-card-items">📄 {{ playlist.items|length }} items</div>
+                <div style="font-size: 0.75rem; color: #999;">{{ playlist.updated_at.strftime('%b %d') }}</div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not playlists %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999;">
+            No playlists yet. Click "+ New Playlist" to create one.
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<!-- Playlist Builder Layout -->
-<div class="playlist-layout" id="playlistBuilder" style="display: none;">
-    <!-- Content Library -->
-    <div class="content-library">
-        <h3>Content Library</h3>
-        <p style="color: #666; font-size: 0.875rem;">Drag content items to the playlist</p>
-        <div class="content-grid" id="contentGrid">
-            {% for content in content_list %}
-            <div class="content-item" draggable="true" data-content-id="{{ content.id }}" data-content='{{ content.to_dict()|tojson }}'>
-                <div class="content-thumbnail">
-                    {% if content.content_type == 'image' %}
-                    🖼️
-                    {% elif content.content_type == 'video' %}
-                    🎬
-                    {% else %}
-                    📄
-                    {% endif %}
-                </div>
-                <div class="content-name" title="{{ content.name }}">{{ content.name }}</div>
-                <div class="content-meta">{{ content.content_type|capitalize }}</div>
+<!-- Playlist Builder (shown when playlist selected) -->
+<div id="playlistBuilderSection" style="display: none;">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h3 id="playlistName" style="margin-bottom: 0.25rem;"></h3>
+                <p id="playlistDescription" style="color: #666; margin: 0;"></p>
             </div>
-            {% endfor %}
+            <button class="btn btn-success" onclick="savePlaylist()">Save Playlist</button>
         </div>
     </div>
 
-    <!-- Playlist Builder -->
-    <div class="playlist-builder">
-        <h3>Playlist Items</h3>
-        <p style="color: #666; font-size: 0.875rem;">Drag to reorder, set duration for each item</p>
-        <div class="playlist-drop-zone empty" id="playlistDropZone">
-            <div id="emptyMessage">Drag content here to build your playlist</div>
-            <div id="playlistItems"></div>
+    <div class="playlist-layout">
+        <!-- Content Library -->
+        <div class="content-library">
+            <h3>Content Library</h3>
+            <p style="color: #666; font-size: 0.875rem;">Drag content items to the playlist</p>
+            <div class="content-grid" id="contentGrid">
+                {% for content in content_list %}
+                <div class="content-item" draggable="true" data-content-id="{{ content.id }}" data-content='{{ content.to_dict()|tojson }}'>
+                    <div class="content-thumbnail">
+                        {% if content.content_type == 'image' %}
+                        <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
+                        {% elif content.content_type == 'video' %}
+                        🎬
+                        {% else %}
+                        📄
+                        {% endif %}
+                    </div>
+                    <div class="content-name" title="{{ content.name }}">{{ content.name }}</div>
+                    <div class="content-meta">{{ content.content_type|capitalize }}</div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        <button class="btn btn-success" onclick="savePlaylist()" style="margin-top: 1rem; width: 100%;">Save Playlist</button>
+
+        <!-- Playlist Builder -->
+        <div class="playlist-builder">
+            <h3>Playlist Items</h3>
+            <p style="color: #666; font-size: 0.875rem;">Drag to reorder, set duration for each item</p>
+            <div class="playlist-drop-zone empty" id="playlistDropZone">
+                <div id="emptyMessage">Drag content here to build your playlist</div>
+                <div id="playlistItems"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -89,15 +106,18 @@
     let playlistItems = [];
     let draggedElement = null;
 
-    // Load playlist when selected
-    document.getElementById('playlistSelect').addEventListener('change', (e) => {
-        const playlistId = e.target.value;
-        if (playlistId) {
-            loadPlaylist(playlistId);
-        } else {
-            hidePlaylistBuilder();
-        }
-    });
+    function selectPlaylist(playlistId) {
+        // Remove selected class from all cards
+        document.querySelectorAll('.playlist-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+
+        // Add selected class to clicked card
+        document.querySelector(`[data-playlist-id="${playlistId}"]`).classList.add('selected');
+
+        // Load playlist
+        loadPlaylist(playlistId);
+    }
 
     async function loadPlaylist(playlistId) {
         try {
@@ -115,10 +135,8 @@
     }
 
     function displayPlaylist() {
-        // Show builder
-        document.getElementById('playlistBuilder').style.display = 'grid';
-        document.getElementById('playlistHeader').style.display = 'block';
-        document.getElementById('deletePlaylistBtn').style.display = 'inline-block';
+        // Show builder section
+        document.getElementById('playlistBuilderSection').style.display = 'block';
 
         // Set header
         document.getElementById('playlistName').textContent = currentPlaylist.name;
@@ -127,14 +145,9 @@
         // Load items
         playlistItems = currentPlaylist.items || [];
         renderPlaylistItems();
-    }
 
-    function hidePlaylistBuilder() {
-        document.getElementById('playlistBuilder').style.display = 'none';
-        document.getElementById('playlistHeader').style.display = 'none';
-        document.getElementById('deletePlaylistBtn').style.display = 'none';
-        currentPlaylist = null;
-        playlistItems = [];
+        // Scroll to builder
+        document.getElementById('playlistBuilderSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function renderPlaylistItems() {
@@ -157,10 +170,17 @@
                 itemDiv.draggable = true;
                 itemDiv.dataset.index = index;
 
-                const icon = item.content.content_type === 'image' ? '🖼️' : (item.content.content_type === 'video' ? '🎬' : '📄');
+                let thumbnail = '';
+                if (item.content.content_type === 'image') {
+                    thumbnail = `<img src="/api/content/${item.content.id}/thumbnail" alt="${item.content.name}">`;
+                } else if (item.content.content_type === 'video') {
+                    thumbnail = '🎬';
+                } else {
+                    thumbnail = '📄';
+                }
 
                 itemDiv.innerHTML = `
-                    <div class="playlist-item-thumbnail">${icon}</div>
+                    <div class="playlist-item-thumbnail">${thumbnail}</div>
                     <div class="playlist-item-info">
                         <div class="playlist-item-name">${item.content.name}</div>
                         <div style="font-size: 0.875rem; color: #666;">${item.content.content_type}</div>
@@ -360,15 +380,13 @@
         }
     }
 
-    async function deleteCurrentPlaylist() {
-        if (!currentPlaylist) return;
-
-        if (!confirm(`Delete playlist "${currentPlaylist.name}"?`)) {
+    async function deletePlaylist(playlistId, playlistName) {
+        if (!confirm(`Delete playlist "${playlistName}"?`)) {
             return;
         }
 
         try {
-            const response = await fetch(`/admin/playlist/${currentPlaylist.id}/delete`, {
+            const response = await fetch(`/admin/playlist/${playlistId}/delete`, {
                 method: 'POST'
             });
 
