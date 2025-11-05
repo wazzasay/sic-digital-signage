@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -17,10 +16,13 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-db = SQLAlchemy(app)
+# Initialize database
+from database import db
+db.init_app(app)
+
 CORS(app)
 
-# Import models and routes
+# Import models and routes after db initialization
 from models import User, Screen, Content, Playlist, PlaylistItem
 from routes import api, admin
 

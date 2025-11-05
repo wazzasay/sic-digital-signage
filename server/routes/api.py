@@ -1,10 +1,10 @@
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 import uuid
 
-from app import db, app
+from database import db
 from models import Screen, Content, Playlist
 
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -110,7 +110,7 @@ def download_content(content_id):
     if content.content_type == 'webpage':
         return jsonify({'error': 'Webpages cannot be downloaded'}), 400
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], content.file_path)
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], content.file_path)
 
     if not os.path.exists(file_path):
         return jsonify({'error': 'File not found'}), 404
@@ -136,7 +136,7 @@ def upload_content():
     extension = original_filename.rsplit('.', 1)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
     file.save(file_path)
 
     # Determine content type

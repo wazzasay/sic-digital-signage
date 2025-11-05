@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 
-from app import db
+from database import db
 from models import User, Screen, Content, Playlist, PlaylistItem
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
