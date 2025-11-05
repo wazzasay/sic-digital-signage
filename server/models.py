@@ -98,18 +98,24 @@ class PlaylistItem(db.Model):
     playlist_id = db.Column(db.Integer, db.ForeignKey('playlists.id'), nullable=False)
     content_id = db.Column(db.Integer, db.ForeignKey('content.id'), nullable=False)
     order = db.Column(db.Integer, nullable=False)
+    duration_override = db.Column(db.Integer)  # Override content's default duration (seconds)
     schedule_start = db.Column(db.Time)  # Optional: only show during certain times
     schedule_end = db.Column(db.Time)
 
     content = db.relationship('Content')
 
     def to_dict(self):
+        # Use duration_override if set, otherwise use content's default duration
+        duration = self.duration_override if self.duration_override is not None else self.content.duration
+
         return {
             'id': self.id,
             'playlist_id': self.playlist_id,
             'content_id': self.content_id,
             'content': self.content.to_dict(),
             'order': self.order,
+            'duration': duration,
+            'duration_override': self.duration_override,
             'schedule_start': self.schedule_start.isoformat() if self.schedule_start else None,
             'schedule_end': self.schedule_end.isoformat() if self.schedule_end else None
         }

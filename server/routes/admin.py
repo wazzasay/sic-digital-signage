@@ -127,6 +127,8 @@ def create_playlist():
 def add_content_to_playlist(playlist_id):
     data = request.json
     content_id = data.get('content_id')
+    duration = data.get('duration')  # Optional duration override
+    order = data.get('order')  # Optional explicit order
 
     playlist = Playlist.query.get(playlist_id)
     if not playlist:
@@ -136,19 +138,33 @@ def add_content_to_playlist(playlist_id):
     if not content:
         return jsonify({'error': 'Content not found'}), 404
 
-    # Get next order number
-    max_order = db.session.query(db.func.max(PlaylistItem.order)).filter_by(playlist_id=playlist_id).scalar() or 0
+    # Use provided order or get next order number
+    if order is None:
+        max_order = db.session.query(db.func.max(PlaylistItem.order)).filter_by(playlist_id=playlist_id).scalar() or 0
+        order = max_order + 1
 
     item = PlaylistItem(
         playlist_id=playlist_id,
         content_id=content_id,
-        order=max_order + 1
+        order=order,
+        duration_override=duration  # Set duration override if provided
     )
 
     db.session.add(item)
     db.session.commit()
 
     return jsonify({'success': True, 'item': item.to_dict()})
+
+@bp.route('/playlist/<int:playlist_id>/item/<int:item_id>/delete', methods=['POST'])
+@login_required
+def delete_playlist_item(playlist_id, item_id):
+    """Delete a specific item from a playlist"""
+    item = PlaylistItem.query.filter_by(id=item_id, playlist_id=playlist_id).first()
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'error': 'Playlist item not found'}), 404
 
 @bp.route('/playlist/<int:playlist_id>/delete', methods=['POST'])
 @login_required

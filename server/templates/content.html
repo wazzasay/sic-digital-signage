@@ -17,13 +17,6 @@
         <input type="file" id="fileInput" multiple accept="image/*,video/*" style="display: none;">
     </div>
 
-    <!-- Upload Settings -->
-    <div class="form-group">
-        <label for="defaultDuration">Default Duration (seconds)</label>
-        <input type="number" id="defaultDuration" value="10" min="1" style="max-width: 200px;">
-        <span style="color: #666; font-size: 0.875rem; margin-left: 0.5rem;">Applied to all uploaded files</span>
-    </div>
-
     <!-- Upload Queue -->
     <div id="uploadQueue" style="margin-top: 2rem;"></div>
 </div>
@@ -68,7 +61,6 @@
     const uploadZone = document.getElementById('uploadZone');
     const fileInput = document.getElementById('fileInput');
     const uploadQueue = document.getElementById('uploadQueue');
-    const defaultDuration = document.getElementById('defaultDuration');
 
     let uploadingFiles = [];
 
@@ -167,7 +159,7 @@
         const formData = new FormData();
         formData.append('file', file);
         formData.append('name', ''); // Let backend auto-name from filename
-        formData.append('duration', defaultDuration.value);
+        formData.append('duration', '10'); // Default duration, will be overridden in playlists
 
         // Upload with progress tracking
         const xhr = new XMLHttpRequest();

@@ -210,3 +210,13 @@ def list_screens():
     return jsonify({
         'screens': [s.to_dict() for s in screens]
     })
+
+@bp.route('/playlist/<int:playlist_id>', methods=['GET'])
+def get_playlist(playlist_id):
+    """Get playlist details with items"""
+    playlist = Playlist.query.get(playlist_id)
+
+    if not playlist:
+        return jsonify({'error': 'Playlist not found'}), 404
+
+    return jsonify(playlist.to_dict())
