@@ -24,32 +24,33 @@
 <div class="card">
     <h2>Content Library</h2>
     {% if content_list %}
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Duration</th>
-                <th>Size</th>
-                <th>Created</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="contentTableBody">
-            {% for content in content_list %}
-            <tr id="content-{{ content.id }}">
-                <td>{{ content.name }}</td>
-                <td>{{ content.content_type|capitalize }}</td>
-                <td>{{ content.duration }}s</td>
-                <td>{{ (content.file_size / 1024 / 1024)|round(2) }} MB</td>
-                <td>{{ content.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
-                    <button class="btn btn-danger" onclick="deleteContent({{ content.id }})">Delete</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="content-library-grid">
+        {% for content in content_list %}
+        <div class="content-library-card" id="content-{{ content.id }}">
+            <div class="content-library-thumbnail">
+                {% if content.content_type == 'image' %}
+                <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
+                {% elif content.content_type == 'video' %}
+                <div style="font-size: 4rem;">🎬</div>
+                {% else %}
+                <div style="font-size: 4rem;">📄</div>
+                {% endif %}
+            </div>
+            <div class="content-library-info">
+                <div class="content-library-name" title="{{ content.name }}">{{ content.name }}</div>
+                <div class="content-library-meta">
+                    <span class="content-type-badge">{{ content.content_type|capitalize }}</span>
+                    <span style="color: #999;">{{ (content.file_size / 1024 / 1024)|round(2) }} MB</span>
+                </div>
+                <div class="content-library-meta" style="font-size: 0.75rem; color: #999; margin-top: 0.25rem;">
+                    <span>Duration: {{ content.duration }}s</span>
+                    <span>{{ content.created_at.strftime('%Y-%m-%d') }}</span>
+                </div>
+                <button class="btn btn-danger" onclick="deleteContent({{ content.id }})" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem;">Delete</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
     <p style="color: #666; text-align: center; padding: 2rem;">No content uploaded yet</p>
     {% endif %}
@@ -229,9 +230,11 @@
             });
 
             if (response.ok) {
-                const row = document.getElementById(`content-${contentId}`);
-                row.style.opacity = '0';
-                setTimeout(() => row.remove(), 300);
+                const card = document.getElementById(`content-${contentId}`);
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => card.remove(), 300);
             } else {
                 alert('Failed to delete content');
             }

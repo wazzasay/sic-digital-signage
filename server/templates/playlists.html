@@ -3,77 +3,87 @@
 {% block title %}Playlists - Digital Signage Manager{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Playlists</h2>
-        <button class="btn btn-primary" onclick="showCreatePlaylistModal()">+ New Playlist</button>
-    </div>
-
-    <!-- Playlist Cards -->
-    <div class="playlist-cards">
-        {% for playlist in playlists %}
-        <div class="playlist-card" data-playlist-id="{{ playlist.id }}" onclick="selectPlaylist({{ playlist.id }})">
-            <button class="playlist-card-delete" onclick="event.stopPropagation(); deletePlaylist({{ playlist.id }}, '{{ playlist.name }}')">Delete</button>
-            <div class="playlist-card-title">{{ playlist.name }}</div>
-            <div class="playlist-card-description">{{ playlist.description or 'No description' }}</div>
-            <div class="playlist-card-meta">
-                <div class="playlist-card-items">📄 {{ playlist.items|length }} items</div>
-                <div style="font-size: 0.75rem; color: #999;">{{ playlist.updated_at.strftime('%b %d') }}</div>
-            </div>
-        </div>
-        {% endfor %}
-
-        {% if not playlists %}
-        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #999;">
-            No playlists yet. Click "+ New Playlist" to create one.
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Playlist Builder (shown when playlist selected) -->
-<div id="playlistBuilderSection" style="display: none;">
-    <div class="card">
+<div class="playlist-page-layout">
+    <!-- Sidebar with playlist list -->
+    <div class="playlist-sidebar">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div>
-                <h3 id="playlistName" style="margin-bottom: 0.25rem;"></h3>
-                <p id="playlistDescription" style="color: #666; margin: 0;"></p>
-            </div>
-            <button class="btn btn-success" onclick="savePlaylist()">Save Playlist</button>
+            <h2 style="margin: 0;">Playlists</h2>
+            <button class="btn btn-primary" onclick="showCreatePlaylistModal()" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;">+ New</button>
         </div>
-    </div>
 
-    <div class="playlist-layout">
-        <!-- Content Library -->
-        <div class="content-library">
-            <h3>Content Library</h3>
-            <p style="color: #666; font-size: 0.875rem;">Drag content items to the playlist</p>
-            <div class="content-grid" id="contentGrid">
-                {% for content in content_list %}
-                <div class="content-item" draggable="true" data-content-id="{{ content.id }}" data-content='{{ content.to_dict()|tojson }}'>
-                    <div class="content-thumbnail">
-                        {% if content.content_type == 'image' %}
-                        <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
-                        {% elif content.content_type == 'video' %}
-                        🎬
-                        {% else %}
-                        📄
-                        {% endif %}
+        <div class="playlist-list">
+            {% if playlists %}
+                {% for playlist in playlists %}
+                <div class="playlist-list-item" data-playlist-id="{{ playlist.id }}" onclick="selectPlaylist({{ playlist.id }})">
+                    <div class="playlist-list-title">{{ playlist.name }}</div>
+                    <div class="playlist-list-meta">
+                        <span>{{ playlist.items|length }} items</span>
+                        <button class="playlist-list-delete" onclick="event.stopPropagation(); deletePlaylist({{ playlist.id }}, '{{ playlist.name }}')">🗑️</button>
                     </div>
-                    <div class="content-name" title="{{ content.name }}">{{ content.name }}</div>
-                    <div class="content-meta">{{ content.content_type|capitalize }}</div>
                 </div>
                 {% endfor %}
-            </div>
+            {% else %}
+                <div style="text-align: center; padding: 2rem; color: #999; font-size: 0.875rem;">
+                    No playlists yet.<br>Click "+ New" to create one.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="playlist-main-content">
+        <!-- Empty state -->
+        <div id="emptyState" class="empty-state">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+            <h3 style="color: #666; font-weight: 500;">Select a playlist to edit</h3>
+            <p style="color: #999; font-size: 0.875rem;">Choose a playlist from the sidebar or create a new one</p>
         </div>
 
-        <!-- Playlist Builder -->
-        <div class="playlist-builder">
-            <h3>Playlist Items</h3>
-            <p style="color: #666; font-size: 0.875rem;">Drag to reorder, set duration for each item</p>
-            <div class="playlist-drop-zone empty" id="playlistDropZone">
-                <div id="emptyMessage">Drag content here to build your playlist</div>
-                <div id="playlistItems"></div>
+        <!-- Playlist Builder (shown when playlist selected) -->
+        <div id="playlistBuilderSection" style="display: none;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                        <h3 id="playlistName" style="margin-bottom: 0.25rem;"></h3>
+                        <p id="playlistDescription" style="color: #666; margin: 0;"></p>
+                    </div>
+                    <button class="btn btn-success" onclick="savePlaylist()">Save Playlist</button>
+                </div>
+            </div>
+
+            <div class="playlist-layout">
+                <!-- Content Library -->
+                <div class="content-library">
+                    <h3>Content Library</h3>
+                    <p style="color: #666; font-size: 0.875rem;">Drag content items to the playlist</p>
+                    <div class="content-grid" id="contentGrid">
+                        {% for content in content_list %}
+                        <div class="content-item" draggable="true" data-content-id="{{ content.id }}" data-content='{{ content.to_dict()|tojson }}'>
+                            <div class="content-thumbnail">
+                                {% if content.content_type == 'image' %}
+                                <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
+                                {% elif content.content_type == 'video' %}
+                                🎬
+                                {% else %}
+                                📄
+                                {% endif %}
+                            </div>
+                            <div class="content-name" title="{{ content.name }}">{{ content.name }}</div>
+                            <div class="content-meta">{{ content.content_type|capitalize }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Playlist Builder -->
+                <div class="playlist-builder">
+                    <h3>Playlist Items</h3>
+                    <p style="color: #666; font-size: 0.875rem;">Drag to reorder, set duration for each item</p>
+                    <div class="playlist-drop-zone empty" id="playlistDropZone">
+                        <div id="emptyMessage">Drag content here to build your playlist</div>
+                        <div id="playlistItems"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -107,12 +117,12 @@
     let draggedElement = null;
 
     function selectPlaylist(playlistId) {
-        // Remove selected class from all cards
-        document.querySelectorAll('.playlist-card').forEach(card => {
-            card.classList.remove('selected');
+        // Remove selected class from all items
+        document.querySelectorAll('.playlist-list-item').forEach(item => {
+            item.classList.remove('selected');
         });
 
-        // Add selected class to clicked card
+        // Add selected class to clicked item
         document.querySelector(`[data-playlist-id="${playlistId}"]`).classList.add('selected');
 
         // Load playlist
@@ -135,7 +145,8 @@
     }
 
     function displayPlaylist() {
-        // Show builder section
+        // Hide empty state, show builder section
+        document.getElementById('emptyState').style.display = 'none';
         document.getElementById('playlistBuilderSection').style.display = 'block';
 
         // Set header
@@ -145,9 +156,6 @@
         // Load items
         playlistItems = currentPlaylist.items || [];
         renderPlaylistItems();
-
-        // Scroll to builder
-        document.getElementById('playlistBuilderSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function renderPlaylistItems() {
