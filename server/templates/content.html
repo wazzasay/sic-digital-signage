@@ -24,36 +24,74 @@
 <div class="card">
     <h2>Content Library</h2>
     {% if content_list %}
-    <div class="content-library-grid">
-        {% for content in content_list %}
-        <div class="content-library-card" id="content-{{ content.id }}">
-            <div class="content-library-thumbnail">
-                {% if content.content_type == 'image' %}
-                <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
-                {% elif content.content_type == 'video' %}
-                <div style="font-size: 4rem;">🎬</div>
-                {% else %}
-                <div style="font-size: 4rem;">📄</div>
-                {% endif %}
-            </div>
-            <div class="content-library-info">
-                <div class="content-library-name" title="{{ content.name }}">{{ content.name }}</div>
-                <div class="content-library-meta">
-                    <span class="content-type-badge">{{ content.content_type|capitalize }}</span>
-                    <span style="color: #999;">{{ (content.file_size / 1024 / 1024)|round(2) }} MB</span>
-                </div>
-                <div class="content-library-meta" style="font-size: 0.75rem; color: #999; margin-top: 0.25rem;">
-                    <span>Duration: {{ content.duration }}s</span>
-                    <span>{{ content.created_at.strftime('%Y-%m-%d') }}</span>
-                </div>
-                <button class="btn btn-danger" onclick="deleteContent({{ content.id }})" style="width: 100%; margin-top: 0.75rem; font-size: 0.875rem;">Delete</button>
-            </div>
-        </div>
-        {% endfor %}
+    <div class="content-table-wrapper">
+        <table class="content-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Preview</th>
+                    <th>Name</th>
+                    <th style="width: 100px;">Type</th>
+                    <th style="width: 100px;">Size</th>
+                    <th style="width: 100px;">Duration</th>
+                    <th style="width: 120px;">Created</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for content in content_list %}
+                <tr id="content-{{ content.id }}">
+                    <td>
+                        <div class="content-thumbnail-small">
+                            {% if content.content_type == 'image' %}
+                            <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
+                            {% elif content.content_type == 'video' %}
+                            <div style="font-size: 2rem;">🎬</div>
+                            {% else %}
+                            <div style="font-size: 2rem;">📄</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="content-name-cell" title="{{ content.name }}">{{ content.name }}</div>
+                    </td>
+                    <td>
+                        <span class="content-type-badge">{{ content.content_type|capitalize }}</span>
+                    </td>
+                    <td>{{ (content.file_size / 1024 / 1024)|round(2) }} MB</td>
+                    <td>{{ content.duration }}s</td>
+                    <td>{{ content.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editContent({{ content.id }}, '{{ content.name }}', {{ content.duration }})" style="margin-right: 0.5rem;">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteContent({{ content.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% else %}
     <p style="color: #666; text-align: center; padding: 2rem;">No content uploaded yet</p>
     {% endif %}
+</div>
+
+<!-- Edit Content Modal -->
+<div id="editContentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%;">
+        <h2>Edit Content</h2>
+        <div class="form-group">
+            <label for="editContentName">Name</label>
+            <input type="text" id="editContentName" required>
+        </div>
+        <div class="form-group">
+            <label for="editContentDuration">Default Duration (seconds)</label>
+            <input type="number" id="editContentDuration" min="1" required>
+        </div>
+        <input type="hidden" id="editContentId">
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button class="btn btn-primary" onclick="saveContentEdit()">Save</button>
+            <button class="btn" onclick="hideEditContentModal()" style="background: #ccc;">Cancel</button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -219,6 +257,45 @@
         }
     }
 
+    function editContent(contentId, contentName, contentDuration) {
+        document.getElementById('editContentId').value = contentId;
+        document.getElementById('editContentName').value = contentName;
+        document.getElementById('editContentDuration').value = contentDuration;
+        document.getElementById('editContentModal').style.display = 'flex';
+    }
+
+    function hideEditContentModal() {
+        document.getElementById('editContentModal').style.display = 'none';
+    }
+
+    async function saveContentEdit() {
+        const contentId = document.getElementById('editContentId').value;
+        const name = document.getElementById('editContentName').value.trim();
+        const duration = document.getElementById('editContentDuration').value;
+
+        if (!name) {
+            alert('Please enter a name');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/content/${contentId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, duration })
+            });
+
+            if (response.ok) {
+                hideEditContentModal();
+                window.location.reload();
+            } else {
+                alert('Failed to update content');
+            }
+        } catch (error) {
+            alert('Failed to update content');
+        }
+    }
+
     async function deleteContent(contentId) {
         if (!confirm('Are you sure you want to delete this content?')) {
             return;
@@ -230,11 +307,10 @@
             });
 
             if (response.ok) {
-                const card = document.getElementById(`content-${contentId}`);
-                card.style.transition = 'all 0.3s ease';
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.9)';
-                setTimeout(() => card.remove(), 300);
+                const row = document.getElementById(`content-${contentId}`);
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '0';
+                setTimeout(() => row.remove(), 300);
             } else {
                 alert('Failed to delete content');
             }

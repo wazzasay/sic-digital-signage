@@ -61,6 +61,25 @@ def content_page():
     content_list = Content.query.order_by(Content.created_at.desc()).all()
     return render_template('content.html', content_list=content_list)
 
+@bp.route('/content/<int:content_id>/edit', methods=['POST'])
+@login_required
+def edit_content(content_id):
+    content = Content.query.get(content_id)
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+
+    data = request.json
+    name = data.get('name')
+    duration = data.get('duration')
+
+    if name:
+        content.name = name
+    if duration:
+        content.duration = int(duration)
+
+    db.session.commit()
+    return jsonify({'success': True})
+
 @bp.route('/content/<int:content_id>/delete', methods=['POST'])
 @login_required
 def delete_content(content_id):

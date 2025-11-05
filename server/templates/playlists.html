@@ -55,32 +55,49 @@
                 <!-- Content Library -->
                 <div class="content-library">
                     <h3>Content Library</h3>
-                    <p style="color: #666; font-size: 0.875rem;">Drag content items to the playlist</p>
-                    <div class="content-grid" id="contentGrid">
-                        {% for content in content_list %}
-                        <div class="content-item" draggable="true" data-content-id="{{ content.id }}" data-content='{{ content.to_dict()|tojson }}'>
-                            <div class="content-thumbnail">
-                                {% if content.content_type == 'image' %}
-                                <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
-                                {% elif content.content_type == 'video' %}
-                                🎬
-                                {% else %}
-                                📄
-                                {% endif %}
-                            </div>
-                            <div class="content-name" title="{{ content.name }}">{{ content.name }}</div>
-                            <div class="content-meta">{{ content.content_type|capitalize }}</div>
-                        </div>
-                        {% endfor %}
+                    <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">Click items to add to playlist</p>
+                    <div class="content-table-wrapper-compact">
+                        <table class="content-table-compact" id="contentTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">Preview</th>
+                                    <th>Name</th>
+                                    <th style="width: 80px;">Type</th>
+                                    <th style="width: 80px;">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for content in content_list %}
+                                <tr class="content-row-clickable" data-content='{{ content.to_dict()|tojson }}' onclick="addContentToPlaylistFromRow(this)">
+                                    <td>
+                                        <div class="content-thumbnail-tiny">
+                                            {% if content.content_type == 'image' %}
+                                            <img src="/api/content/{{ content.id }}/thumbnail" alt="{{ content.name }}" loading="lazy">
+                                            {% elif content.content_type == 'video' %}
+                                            <div style="font-size: 1.5rem;">🎬</div>
+                                            {% else %}
+                                            <div style="font-size: 1.5rem;">📄</div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="content-name-cell-compact" title="{{ content.name }}">{{ content.name }}</div>
+                                    </td>
+                                    <td><span class="content-type-badge-sm">{{ content.content_type|capitalize }}</span></td>
+                                    <td>{{ content.duration }}s</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
                 <!-- Playlist Builder -->
                 <div class="playlist-builder">
                     <h3>Playlist Items</h3>
-                    <p style="color: #666; font-size: 0.875rem;">Drag to reorder, set duration for each item</p>
-                    <div class="playlist-drop-zone empty" id="playlistDropZone">
-                        <div id="emptyMessage">Drag content here to build your playlist</div>
+                    <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">Drag to reorder items</p>
+                    <div id="playlistItemsWrapper">
+                        <div id="emptyMessage" style="text-align: center; padding: 3rem; color: #999;">Click content items to add them to the playlist</div>
                         <div id="playlistItems"></div>
                     </div>
                 </div>
@@ -160,16 +177,13 @@
 
     function renderPlaylistItems() {
         const container = document.getElementById('playlistItems');
-        const dropZone = document.getElementById('playlistDropZone');
         const emptyMessage = document.getElementById('emptyMessage');
 
         container.innerHTML = '';
 
         if (playlistItems.length === 0) {
-            dropZone.classList.add('empty');
             emptyMessage.style.display = 'block';
         } else {
-            dropZone.classList.remove('empty');
             emptyMessage.style.display = 'none';
 
             playlistItems.forEach((item, index) => {
@@ -188,6 +202,7 @@
                 }
 
                 itemDiv.innerHTML = `
+                    <div class="playlist-item-drag-handle" title="Drag to reorder">⋮⋮</div>
                     <div class="playlist-item-thumbnail">${thumbnail}</div>
                     <div class="playlist-item-info">
                         <div class="playlist-item-name">${item.content.name}</div>
@@ -212,48 +227,27 @@
         }
     }
 
-    // Content library drag events
-    document.querySelectorAll('.content-item').forEach(item => {
-        item.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('content', item.dataset.content);
-            item.classList.add('dragging');
-        });
-
-        item.addEventListener('dragend', (e) => {
-            item.classList.remove('dragging');
-        });
-    });
-
-    // Drop zone events
-    const dropZone = document.getElementById('playlistDropZone');
-
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
-    });
-
-    dropZone.addEventListener('dragleave', (e) => {
-        if (e.target === dropZone) {
-            dropZone.classList.remove('drag-over');
-        }
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-
-        const contentData = e.dataTransfer.getData('content');
+    function addContentToPlaylistFromRow(rowElement) {
+        const contentData = rowElement.dataset.content;
         if (contentData) {
             const content = JSON.parse(contentData);
             addContentToPlaylist(content);
         }
-    });
+    }
 
     function addContentToPlaylist(content) {
         // Check if already in playlist
         const exists = playlistItems.find(item => item.content.id === content.id);
         if (exists) {
-            alert('This content is already in the playlist');
+            // Flash the existing item to show it's already there
+            const existingIndex = playlistItems.findIndex(item => item.content.id === content.id);
+            const items = document.querySelectorAll('.playlist-item');
+            if (items[existingIndex]) {
+                items[existingIndex].style.background = '#ffe8a1';
+                setTimeout(() => {
+                    items[existingIndex].style.background = '';
+                }, 500);
+            }
             return;
         }
 
