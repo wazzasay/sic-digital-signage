@@ -5,7 +5,7 @@ import os
 import uuid
 
 from database import db
-from models import Screen, Content, Playlist
+from models import Screen, Content, Playlist, PlaylistItem
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
