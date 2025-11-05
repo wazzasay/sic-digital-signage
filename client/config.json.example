@@ -3,6 +3,5 @@
   "name": "Display 1",
   "location": "Main Lobby",
   "poll_interval": 30,
-  "heartbeat_interval": 60,
-  "cache_dir": "/home/signage/.signage_cache"
+  "heartbeat_interval": 60
 }

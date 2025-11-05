@@ -80,19 +80,20 @@ sudo systemctl start signage-player
   "name": "Display 1",
   "location": "Main Lobby",
   "poll_interval": 30,
-  "heartbeat_interval": 60,
-  "cache_dir": "/home/signage/.signage_cache"
+  "heartbeat_interval": 60
 }
 ```
 
 **Options:**
 
-- `server_url`: URL of the management server
-- `name`: Display name (shown in admin interface)
-- `location`: Physical location of the display
-- `poll_interval`: How often to check for new content (seconds)
-- `heartbeat_interval`: How often to send heartbeat (seconds)
-- `cache_dir`: Directory for cached content
+- `server_url`: URL of the management server (required)
+- `name`: Display name (shown in admin interface, required)
+- `location`: Physical location of the display (optional)
+- `poll_interval`: How often to check for new content in seconds (default: 30)
+- `heartbeat_interval`: How often to send heartbeat in seconds (default: 60)
+- `cache_dir`: Directory for cached content (optional, defaults to `~/.signage_cache`)
+
+**Note:** The `cache_dir` is optional and will default to `.signage_cache` in the current user's home directory. Only specify this if you need a custom cache location.
 
 The `identifier` is automatically generated and saved on first run.
 
