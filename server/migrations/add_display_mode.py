@@ -17,10 +17,23 @@ db_path = Path(__file__).parent.parent / 'signage.db'
 
 def migrate():
     """Add display_mode column to content table"""
+    # Check if database exists
+    if not db_path.exists():
+        print("✓ Database doesn't exist yet - no migration needed")
+        print("  The display_mode column will be created when the database is initialized")
+        return
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     try:
+        # Check if content table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='content'")
+        if not cursor.fetchone():
+            print("✓ Content table doesn't exist yet - no migration needed")
+            print("  The display_mode column will be created when the database is initialized")
+            return
+
         # Check if column already exists
         cursor.execute("PRAGMA table_info(content)")
         columns = [column[1] for column in cursor.fetchall()]
