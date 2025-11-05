@@ -137,40 +137,63 @@ def upload_content():
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
 
     file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
-    file.save(file_path)
 
-    # Determine content type
-    if extension in {'png', 'jpg', 'jpeg', 'gif', 'bmp'}:
-        content_type = 'image'
-    elif extension in {'mp4', 'avi', 'mov', 'webm', 'mkv'}:
-        content_type = 'video'
-    else:
-        content_type = 'unknown'
+    # Save file with error handling
+    try:
+        file.save(file_path)
+    except Exception as e:
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
 
-    # Get file size
-    file_size = os.path.getsize(file_path)
+    try:
+        # Determine content type
+        if extension in {'png', 'jpg', 'jpeg', 'gif', 'bmp'}:
+            content_type = 'image'
+        elif extension in {'mp4', 'avi', 'mov', 'webm', 'mkv'}:
+            content_type = 'video'
+        else:
+            content_type = 'unknown'
 
-    # Get content name and duration from form data
-    name = request.form.get('name', original_filename)
-    duration = int(request.form.get('duration', 10))
+        # Get file size
+        file_size = os.path.getsize(file_path)
 
-    # Create content entry
-    content = Content(
-        name=name,
-        content_type=content_type,
-        file_path=unique_filename,
-        duration=duration,
-        file_size=file_size,
-        mime_type=file.content_type
-    )
+        # Get content name and duration from form data
+        # If no name provided, use filename without extension
+        name_from_form = request.form.get('name', '').strip()
+        if not name_from_form:
+            # Remove extension from filename for default name
+            name = original_filename.rsplit('.', 1)[0]
+        else:
+            name = name_from_form
 
-    db.session.add(content)
-    db.session.commit()
+        duration = int(request.form.get('duration', 10))
 
-    return jsonify({
-        'success': True,
-        'content': content.to_dict()
-    })
+        # Create content entry
+        content = Content(
+            name=name,
+            content_type=content_type,
+            file_path=unique_filename,
+            duration=duration,
+            file_size=file_size,
+            mime_type=file.content_type
+        )
+
+        db.session.add(content)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'content': content.to_dict()
+        })
+
+    except Exception as e:
+        # Rollback database and cleanup file on error
+        db.session.rollback()
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        return jsonify({'error': f'Failed to create content: {str(e)}'}), 500
 
 @bp.route('/content', methods=['GET'])
 def list_content():
